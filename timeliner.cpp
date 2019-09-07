@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <fstream>
 #include "nlohmann/json.hpp"
-//#include "Timeliner.cpp"
 
 using json = nlohmann::json;
 
@@ -15,7 +14,9 @@ using json = nlohmann::json;
 json ReadJson(std::string);
 void WriteJson(std::string, json);
 void PrintJson(json);
+
 void Timeliner(json &, json &);
+void GroupByTransID(json &);
 
 
 
@@ -28,8 +29,21 @@ int main(){
 
     Events = ReadJson(INPUT_FILE);
     PrintJson(Events);
+
+    ///
+    std::cout << "-------------------------" << std::endl;
+    PrintJson(Events["events"][0]);
+    PrintJson(Events["events"][0]["custom_data"][1]["key"]);
+    std::cout << "is transaction_id: ";
+    std::cout << strcmp(Events["events"][0]["custom_data"][1]["key"].get<std::string>().c_str(),"transaction_id");
+    std::cout << std::endl;
+    PrintJson(Events["events"][0]["custom_data"][1]["value"]);
+    PrintJson(Events["events"][0]["timestamp"]);
+    std::cout << "-------------------------" << std::endl;
+    ///
+    
     Timeliner(EventsRef,TimelineRef);
-    PrintJson(Timeline);
+    //PrintJson(Timeline);
     WriteJson(OUTPUT_FILE, Timeline);
 
     return 0;
@@ -65,10 +79,13 @@ void WriteJson(std::string FileName,json JsonData){
 void Timeliner(json &BuyData, json &Timeline){
 
     // get group of events with the same trans. id as the first
+
     // transfer it/them to Timeline (insert at the right place, remove from BuyData)
-    // repeat until BuyData is empty
+    // repeat until BuyData is empty (call recursively)
 
     Timeline = BuyData;      // FIXME this is just dummy code;
 
     return;
 }
+
+// ill assume that events of the same transaction are all neighbors...
