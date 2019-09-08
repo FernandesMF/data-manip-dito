@@ -1,7 +1,6 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <vector>
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
@@ -17,7 +16,7 @@ void WriteJson(std::string, json);
 void PrintJson(json);
 
 void Timeliner(json &, json &);
-void GroupByTransID(json &, std::vector<int> &);
+int GroupByTransID(json &);
 int FindTransIDIndex(json &, int);
 
 
@@ -81,11 +80,11 @@ void WriteJson(std::string FileName,json JsonData){
 
 void Timeliner(json &BuyData, json &Timeline){
 
-    std::vector<int> IdIndexes;
-    std::vector<int> &IdIndexesRef = IdIndexes;
+    int FinalEventIndex = 0;
 
     // get group of events with the same trans. id as the first
-    GroupByTransID(BuyData, IdIndexesRef);
+    FinalEventIndex = GroupByTransID(BuyData);
+    std::cout << "timeliner FinalEventIndex " << FinalEventIndex << std::endl; // FIXME remove this print
 
     // transfer it/them to Timeline (insert at the right place, remove from BuyData)
     // repeat until BuyData is empty (call recursively)
@@ -97,18 +96,28 @@ void Timeliner(json &BuyData, json &Timeline){
     return;
 }
 
-// ill assume that events of the same transaction are all neighbors...
-void GroupByTransID(json &BuyData,std::vector<int> &IdIndexes){
+// FIXME the code is assuming that events of the same transaction are neighbors;
+int GroupByTransID(json &BuyData){
     int EventIdx = 0;
-    int i1 = 0;
+    int IdIdx = -1;
+    //int i2 = -1;
+    std::string TransID = "";
+    std::string TestID = "";
 
-    // find transaction index of the first item in BuyData
-    i1 = FindTransIDIndex(BuyData,EventIdx);
+    // find transaction index and id of the first item in BuyData
+    IdIdx = FindTransIDIndex(BuyData,0);
+    TransID = BuyData["events"][0]["custom_data"][IdIdx]["value"].get<std::string>();
 
     // keep checking transaction ids of the next events, until there is a different one
-    // store indexes in IdIndexes
+    do
+    {
+        EventIdx++;
+        IdIdx = FindTransIDIndex(BuyData,EventIdx);
+        TestID = BuyData["events"][EventIdx]["custom_data"][IdIdx]["value"].get<std::string>();
+    } while (strcmp( TransID.c_str(),TestID.c_str() )==0);    
+    EventIdx--;
 
-    return;
+    return EventIdx;
 }
 
 int FindTransIDIndex(json &BuyData, int EventIdx){
@@ -123,6 +132,6 @@ int FindTransIDIndex(json &BuyData, int EventIdx){
             bStillLooking = false;
         }
     }
-    std::cout << "event " << EventIdx << ", transaction id " << r << std::endl;
+    std::cout << "FindTransIDIndex event " << EventIdx << ", transaction id " << r << std::endl;
     return r;
 }
