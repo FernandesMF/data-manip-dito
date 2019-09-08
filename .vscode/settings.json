@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "iosfwd": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "optional": "cpp",
+        "iostream": "cpp"
     }
 }

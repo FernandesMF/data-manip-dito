@@ -19,13 +19,14 @@ void InitializeTimeline(json &);;
 void Timeliner(json &, json &);
 int GroupByTransID(json &, int &);
 int FindTransIDIndex(json &, int);
+int FindInsertIndex(json &, std::string);
 
 
 
 int main(){
 
-    json Events = NULL;
-    json Timeline = NULL;
+    json Events;
+    json Timeline;
     json &EventsRef = Events;
     json &TimelineRef = Timeline;
 
@@ -46,6 +47,8 @@ int main(){
     //
 
     InitializeTimeline(TimelineRef);
+    PrintJson(Timeline); //FIXME remove this print
+    std::cout << "main timeline first item after initialization " << Timeline["timeline"] << std::endl; // FIXME remove this print
     Timeliner(EventsRef,TimelineRef);
     //PrintJson(Timeline);
     WriteJson(OUTPUT_FILE, Timeline);
@@ -80,9 +83,8 @@ void WriteJson(std::string FileName,json JsonData){
 
 
 
-void InitializeTimeline(json &TimeLine){
-    // TODO RESUME HERE: initialize tiemliene json variable, then research how to insert structured values
-
+void InitializeTimeline(json &Timeline){
+    Timeline["timeline"] = NULL;
     return;
 }
 
@@ -90,18 +92,23 @@ void Timeliner(json &BuyData, json &Timeline){
     int BuyEventIdx = -1;
     int &BuyEventIdxRef = BuyEventIdx;
     int FinalEventIndex = 0;
+    int InsertIndex = -1;
 
     // get group of events with the same trans. id as the first; get id of the buy event
     FinalEventIndex = GroupByTransID(BuyData, BuyEventIdx);
     std::cout << "timeliner FinalEventIndex " << FinalEventIndex << std::endl; // FIXME remove this print
     std::cout << "timeliner BuyEventIdx " << BuyEventIdx << std::endl; // FIXME remove this print
 
-    // transfer it/them to Timeline (insert at the right place), remove from BuyData
+    // find index to insert events in timeline
+    InsertIndex = FindInsertIndex(Timeline,BuyData["events"][BuyEventIdx]["timestamp"].get<std::string>());
+    std::cout << "Timeliner FindInsertIndex " << InsertIndex << std::endl; // FIXME remove this print
+
+    // transfer items from BuyData to Timeline
+    //for(int r = 0; r <= FinalEventIndex; r++){}
+
     // repeat until BuyData is empty (call recursively)
         // delete IdIndexes and ...Ref?
         // call Timeliner again from if statement
-
-    Timeline = BuyData;      // FIXME this is just dummy code;
 
     return;
 }
@@ -151,4 +158,17 @@ int FindTransIDIndex(json &BuyData, int EventIdx){
     }
     std::cout << "FindTransIDIndex event " << EventIdx << ", transaction id " << r << std::endl;    // FIXME remove this print
     return r;
+}
+
+int FindInsertIndex(json &Timeline, std::string Timestamp){
+    int i = 0;
+    std::string str = "";
+    if(Timeline["timeline"] == 0){ return 0;}
+    str = Timeline["timeline"][i]["timestamp"].get<std::string>();
+    while ( strcmp(Timestamp.c_str(),str.c_str()) < 0  ){
+        i++;
+        str = Timeline["timeline"][i]["timestamp"].get<std::string>();
+    }
+
+    return i;
 }
