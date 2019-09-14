@@ -8,6 +8,7 @@ using json = nlohmann::json;
 // TODO main: use terminal arguments for input and output
 #define INPUT_FILE "events.json"
 #define OUTPUT_FILE "timeline.json"
+#define OUT     // useful output reminder
 
 
 
@@ -20,6 +21,7 @@ void Timeliner(json &, json &);
 int GroupByTransID(json &, int &);
 int FindTransIDIndex(json &, int);
 int FindInsertIndex(json &, std::string);
+void MoveBuyInfo(json &, int, json &, int);
 
 
 
@@ -44,13 +46,18 @@ int main(){
     PrintJson(Events["events"][0]["custom_data"][1]["value"]);
     PrintJson(Events["events"][0]["timestamp"]);
     std::cout << "-------------------------" << std::endl;
+    std::cout << "json pointer test" << std::endl;
+    PrintJson(Events["/events/0/custom_data"_json_pointer]);
     //
 
-    InitializeTimeline(TimelineRef);
+//    InitializeTimeline(TimelineRef);
     PrintJson(Timeline); //FIXME remove this print
     std::cout << "main timeline first item after initialization " << Timeline["timeline"] << std::endl; // FIXME remove this print
     Timeliner(EventsRef,TimelineRef);
-    //PrintJson(Timeline);
+    std::cout << "main timeline after Timeliner call\n";
+    PrintJson(Timeline);
+    std::cout << "main Events after timeliner call\n";
+    PrintJson(Events);
     WriteJson(OUTPUT_FILE, Timeline);
 
     return 0;
@@ -84,7 +91,7 @@ void WriteJson(std::string FileName,json JsonData){
 
 
 void InitializeTimeline(json &Timeline){
-    Timeline["timeline"] = NULL;
+    Timeline["timeline"] = "";
     return;
 }
 
@@ -95,7 +102,7 @@ void Timeliner(json &BuyData, json &Timeline){
     int InsertIndex = -1;
 
     // get group of events with the same trans. id as the first; get id of the buy event
-    FinalEventIndex = GroupByTransID(BuyData, BuyEventIdx);
+    FinalEventIndex = GroupByTransID(BuyData, OUT BuyEventIdx);
     std::cout << "timeliner FinalEventIndex " << FinalEventIndex << std::endl; // FIXME remove this print
     std::cout << "timeliner BuyEventIdx " << BuyEventIdx << std::endl; // FIXME remove this print
 
@@ -103,10 +110,13 @@ void Timeliner(json &BuyData, json &Timeline){
     InsertIndex = FindInsertIndex(Timeline,BuyData["events"][BuyEventIdx]["timestamp"].get<std::string>());
     std::cout << "Timeliner FindInsertIndex " << InsertIndex << std::endl; // FIXME remove this print
 
-    // transfer items from BuyData to Timeline
-    //for(int r = 0; r <= FinalEventIndex; r++){}
+    // transfer items from BuyEvent to Timeline
+    MoveBuyInfo(BuyData,BuyEventIdx,Timeline,InsertIndex);
 
-    // repeat until BuyData is empty (call recursively)
+    // transfer items from other events in group to Timeline
+    //for(int r = 0; r <= FinalEventIndex; r++){}
+    
+    // repeat until BuyData is empty (recursion call)
         // delete IdIndexes and ...Ref?
         // call Timeliner again from if statement
 
@@ -163,7 +173,7 @@ int FindTransIDIndex(json &BuyData, int EventIdx){
 int FindInsertIndex(json &Timeline, std::string Timestamp){
     int i = 0;
     std::string str = "";
-    if(Timeline["timeline"] == 0){ return 0;}
+    if(Timeline["timeline"].size() == 0){ return 0;}
     str = Timeline["timeline"][i]["timestamp"].get<std::string>();
     while ( strcmp(Timestamp.c_str(),str.c_str()) < 0  ){
         i++;
@@ -171,4 +181,19 @@ int FindInsertIndex(json &Timeline, std::string Timestamp){
     }
 
     return i;
+}
+
+void MoveBuyInfo(json &BuyData, int BuyEventIdx, json &Timeline, int InsertIndex){ 
+    std::string key = "";
+    // add timestamp and revenue to Timeline
+    Timeline["timeline"][InsertIndex]["timestamp"] = BuyData["events"][BuyEventIdx]["timestamp"];
+    Timeline["timeline"][InsertIndex]["revenue"] = BuyData["events"][BuyEventIdx]["revenue"];
+    // add custom data to Timeline (cycle through custom data), store_name and trans._id
+    for(int r=0; r<2; r++){
+        key = BuyData["events"][BuyEventIdx]["custom_data"][r]["key"];
+        Timeline["timeline"][InsertIndex][key] = BuyData["events"][BuyEventIdx]["custom_data"][r]["value"];
+    }
+    // remove that info from BuyData (perhaps just delete the buy element?)
+    BuyData["events"][BuyEventIdx].clear();
+    return;
 }
