@@ -58,6 +58,7 @@ int main(){
     PrintJson(Timeline);
     std::cout << "main Events after timeliner call\n";
     PrintJson(Events);
+    std::cout << Events["events"].size();
     WriteJson(OUTPUT_FILE, Timeline);
 
     return 0;
@@ -194,6 +195,8 @@ void MoveBuyInfo(json &BuyData, int BuyEventIdx, json &Timeline, int InsertIndex
         Timeline["timeline"][InsertIndex][key] = BuyData["events"][BuyEventIdx]["custom_data"][r]["value"];
     }
     // remove that info from BuyData (perhaps just delete the buy element?)
-    BuyData["events"][BuyEventIdx].clear();
+    //BuyData["events"][BuyEventIdx].clear();
+    BuyData["events"].erase(BuyEventIdx);
+    
     return;
 }
