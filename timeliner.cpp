@@ -22,8 +22,7 @@ int GroupByTransID(json &, int &);
 int FindTransIDIndex(json &, int);
 int FindInsertIndex(json &, std::string);
 void MoveBuyInfo(json &, int, json &, int);
-
-
+void MoveProductInfo(json &, int, json &, int, int &);
 
 int main(){
 
@@ -50,7 +49,7 @@ int main(){
     PrintJson(Events["/events/0/custom_data"_json_pointer]);
     //
 
-//    InitializeTimeline(TimelineRef);
+ //   InitializeTimeline(TimelineRef);
     PrintJson(Timeline); //FIXME remove this print
     std::cout << "main timeline first item after initialization " << Timeline["timeline"] << std::endl; // FIXME remove this print
     Timeliner(EventsRef,TimelineRef);
@@ -101,6 +100,8 @@ void Timeliner(json &BuyData, json &Timeline){
     int &BuyEventIdxRef = BuyEventIdx;
     int FinalEventIndex = 0;
     int InsertIndex = -1;
+    int ProductIndex = 0;
+    int &ProductIndexRef = ProductIndex;
 
     // get group of events with the same trans. id as the first; get id of the buy event
     FinalEventIndex = GroupByTransID(BuyData, OUT BuyEventIdx);
@@ -114,8 +115,10 @@ void Timeliner(json &BuyData, json &Timeline){
     // transfer items from BuyEvent to Timeline
     MoveBuyInfo(BuyData,BuyEventIdx,Timeline,InsertIndex);
 
-    // transfer items from other events in group to Timeline
-    //for(int r = 0; r <= FinalEventIndex; r++){}
+    // transfer items from other events in group to Timeline; remember that the buy event was removed in the last step;
+    for(int r = FinalEventIndex-1; r >= 0; r--){
+        MoveProductInfo(BuyData,r,Timeline,InsertIndex,ProductIndexRef);
+    }
     
     // repeat until BuyData is empty (recursion call)
         // delete IdIndexes and ...Ref?
@@ -195,8 +198,26 @@ void MoveBuyInfo(json &BuyData, int BuyEventIdx, json &Timeline, int InsertIndex
         Timeline["timeline"][InsertIndex][key] = BuyData["events"][BuyEventIdx]["custom_data"][r]["value"];
     }
     // remove that info from BuyData (perhaps just delete the buy element?)
-    //BuyData["events"][BuyEventIdx].clear();
     BuyData["events"].erase(BuyEventIdx);
     
+    return;
+}
+
+void MoveProductInfo(json &BuyData, int EventIdx, json &Timeline, int InsertIndex, int &ProductIndex){ 
+    std::string key = "";
+    int tid_flag = 0;
+    // go through custom data of r-th event
+    for(int s=0; s < BuyData["events"][EventIdx]["custom_data"].size() ; s++){
+        // ignore transaction_id
+        key = BuyData["events"][EventIdx]["custom_data"][s]["key"].get<std::string>();
+        tid_flag = strcmp("transaction_id",key.c_str());
+        if(tid_flag!=0){
+            // add key and value (product_price or product_name) to Timeline
+            Timeline["timeline"][InsertIndex]["products"][ProductIndex][key] = BuyData["events"][EventIdx]["custom_data"][s]["value"];
+        }                  
+    }
+    ProductIndex++;
+    // remove event from BuyData
+    BuyData["events"].erase(EventIdx);
     return;
 }
