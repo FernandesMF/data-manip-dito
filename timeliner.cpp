@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <vector>
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
@@ -47,13 +48,14 @@ int main(){
     std::cout << "-------------------------" << std::endl;
     std::cout << "json pointer test" << std::endl;
     PrintJson(Events["/events/0/custom_data"_json_pointer]);
+    std::cout << "-------------------------" << std::endl;
     //
 
  //   InitializeTimeline(TimelineRef);
     PrintJson(Timeline); //FIXME remove this print
-    std::cout << "main timeline first item after initialization " << Timeline["timeline"] << std::endl; // FIXME remove this print
+    std::cout << "main: timeline first item after initialization " << Timeline["timeline"] << std::endl; // FIXME remove this print
     Timeliner(EventsRef,TimelineRef);
-    std::cout << "main timeline after Timeliner call\n";
+    std::cout << "main: timeline after Timeliner call\n";
     PrintJson(Timeline);
     std::cout << "main Events after timeliner call\n";
     PrintJson(Events);
@@ -91,38 +93,54 @@ void WriteJson(std::string FileName,json JsonData){
 
 
 void InitializeTimeline(json &Timeline){
-    Timeline["timeline"] = "";
+    Timeline["timeline"] = {};
     return;
 }
 
 void Timeliner(json &BuyData, json &Timeline){
-    int BuyEventIdx = -1;
-    int &BuyEventIdxRef = BuyEventIdx;
-    int FinalEventIndex = 0;
-    int InsertIndex = -1;
-    int ProductIndex = 0;
-    int &ProductIndexRef = ProductIndex;
+    { // begin scope of variables; they will be "decomissioned" before the end of this recursion
+        // TODO comment variables and tell what their roles are
+        int BuyEventIdx = -1;
+        int &BuyEventIdxRef = BuyEventIdx;
+        int FinalEventIndex = 0;
+        int InsertIndex = -1;
+        int ProductIndex = 0;
+        int &ProductIndexRef = ProductIndex;
 
-    // get group of events with the same trans. id as the first; get id of the buy event
-    FinalEventIndex = GroupByTransID(BuyData, OUT BuyEventIdx);
-    std::cout << "timeliner FinalEventIndex " << FinalEventIndex << std::endl; // FIXME remove this print
-    std::cout << "timeliner BuyEventIdx " << BuyEventIdx << std::endl; // FIXME remove this print
+        // get group of events with the same trans. id as the first; get id of the buy event
+        FinalEventIndex = GroupByTransID(BuyData, OUT BuyEventIdx);
+        std::cout << "timeliner FinalEventIndex " << FinalEventIndex << std::endl; // FIXME remove this print
+        std::cout << "timeliner BuyEventIdx " << BuyEventIdx << std::endl; // FIXME remove this print
 
-    // find index to insert events in timeline
-    InsertIndex = FindInsertIndex(Timeline,BuyData["events"][BuyEventIdx]["timestamp"].get<std::string>());
-    std::cout << "Timeliner FindInsertIndex " << InsertIndex << std::endl; // FIXME remove this print
+        // find index to insert events in timeline
+        InsertIndex = FindInsertIndex(Timeline,BuyData["events"][BuyEventIdx]["timestamp"].get<std::string>());
+        std::cout << "Timeliner FindInsertIndex " << InsertIndex << std::endl; // FIXME remove this print
 
-    // transfer items from BuyEvent to Timeline
-    MoveBuyInfo(BuyData,BuyEventIdx,Timeline,InsertIndex);
+        // insert a new entry in timelne at index InsertIndex (emplace operation)
+        std::cout << "Timeliner: Timeline[\"timeline\"].size()=" << Timeline["timeline"].size() << std::endl; // FIXME remove
+        //if(Timeline["timeline"].size>0){
+        //    Timeline["timeline"].emplace(InsertIndex,{});
+        //}
 
-    // transfer items from other events in group to Timeline; remember that the buy event was removed in the last step;
-    for(int r = FinalEventIndex-1; r >= 0; r--){
-        MoveProductInfo(BuyData,r,Timeline,InsertIndex,ProductIndexRef);
-    }
+        // transfer items from BuyEvent to Timeline
+        MoveBuyInfo(BuyData,BuyEventIdx,Timeline,InsertIndex);
+
+        // transfer items from other events in group to Timeline; remember that the buy event was removed
+        //in the last step;
+        for(int r = FinalEventIndex-1; r >= 0; r--){
+            MoveProductInfo(BuyData,r,Timeline,InsertIndex,ProductIndexRef);
+        }
+    } // end of variables scope
     
-    // repeat until BuyData is empty (recursion call)
-        // delete IdIndexes and ...Ref?
-        // call Timeliner again from if statement
+    // recursion: if BuyData is not empty yet, call Timeliner again
+    if(BuyData["events"].size()>0){ // or perhaps "not NULL"?
+        std::cout << "timeliner: BEGIN RECURSION -----------------------------\n";     // FIXME remove this later
+        std::cout << "timeliner: Events size: " << BuyData["events"].size() << std::endl;
+        std::cout << "timeliner: Events: ";
+        PrintJson(BuyData);
+        Timeliner(BuyData,Timeline);
+    }
+
 
     return;
 }
@@ -152,9 +170,12 @@ int GroupByTransID(json &BuyData, int& BuyEventIdx){
         if(strcmp( "comprou",EventValue.c_str() )==0){
             BuyEventIdx = EventIdx;
         }
-    } while ( EventIdx < BuyData["events"].size() && strcmp( TransID.c_str(),TestID.c_str() )==0);    
-    EventIdx--;
-
+    } while ( EventIdx < BuyData["events"].size()-1 && strcmp( TransID.c_str(),TestID.c_str() )==0);    
+    
+    // reduce EventIdx if the do-while block was not stopped by the end of BuyData being reached
+    if(EventIdx < BuyData["events"].size()-1 ){
+        EventIdx--;
+    }
     return EventIdx;
 }
 
