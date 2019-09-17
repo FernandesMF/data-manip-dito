@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <vector>
+#include <stdexcept>
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
@@ -31,13 +31,24 @@ int main(){
     json &EventsRef = Events;
     json &TimelineRef = Timeline;
 
-    Events = ReadJson(INPUT_FILE);
+    try{ Events = ReadJson(INPUT_FILE); }
+    catch(const std::runtime_error& e){ 
+        std::cerr << e.what() << '\n'; 
+        return 1;
+    }
+    
     std::cout << "Events before Timeliner call:\n";
     PrintJson(Events);
     Timeliner(EventsRef,TimelineRef);
     std::cout << "Timeline after Timeliner call:\n";
     PrintJson(Timeline);
-    WriteJson(OUTPUT_FILE, Timeline);
+    
+    std::cout << "Writing timeline to output file\n";
+    try{ WriteJson(OUTPUT_FILE, Timeline); }
+    catch(const std::runtime_error& e){ 
+        std::cerr << e.what() << '\n'; 
+        return 1;
+    }
 
     return 0;
 }
@@ -48,27 +59,29 @@ void PrintJson(json JsonData){
 }
 
 // Reads a Json file turns it into a json variable
-// TODO json reader: file opening/ existence checks
 json ReadJson(std::string FileName){
     json JsonData = NULL;
     std::ifstream EventsFile(FileName, std::ifstream::binary);
+    if( EventsFile.fail() ){ throw std::runtime_error("Error opening input file."); }
     EventsFile >> JsonData;
+    EventsFile.close();
+    if( EventsFile.fail() ){ throw std::runtime_error("Error closing input file."); }
 
     return JsonData;
 }
 
 // Writes a Json file from a a json variable
-//TODO json writer: file opening checks
 void WriteJson(std::string FileName,json JsonData){
     std::ofstream TimelineFile;
     TimelineFile.open(OUTPUT_FILE);
+    // TODO check for existence, and warn if overwriting file
+    if( TimelineFile.fail() ){ throw std::runtime_error("Error opening output file."); }
     TimelineFile << JsonData;
     TimelineFile.close();
+    if( TimelineFile.fail() ){ throw std::runtime_error("Error closing output file."); }
 
     return;
 }
-
-
 
 // Finds the group of events with the same transaction ID, adds their information to Timeline
 // and removes them from Events; processes the entire Events Json by means of recursion.
@@ -168,7 +181,6 @@ int FindInsertIndex(json &Timeline, std::string Timestamp){
         i++;
         str = Timeline["timeline"][i]["timestamp"].get<std::string>();
     }
-
     return i;
 }
 
