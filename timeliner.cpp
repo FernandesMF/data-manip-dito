@@ -11,19 +11,17 @@ using json = nlohmann::json;
 #define OUTPUT_FILE "timeline.json"
 #define OUT     // useful output reminder
 
-
-
 json ReadJson(std::string);
 void WriteJson(std::string, json);
 void PrintJson(json);
-
-void InitializeTimeline(json &);;
 void Timeliner(json &, json &);
 int GroupByTransID(json &, int &);
 int FindTransIDIndex(json &, int);
 int FindInsertIndex(json &, std::string);
 void MoveBuyInfo(json &, int, json &, int);
 void MoveProductInfo(json &, int, json &, int, int &);
+
+
 
 // Entry point of the application
 int main(){
@@ -34,19 +32,15 @@ int main(){
     json &TimelineRef = Timeline;
 
     Events = ReadJson(INPUT_FILE);
-    std::cout << "main: Events before Timeliner call:\n";
+    std::cout << "Events before Timeliner call:\n";
     PrintJson(Events);
     Timeliner(EventsRef,TimelineRef);
-    std::cout << "main: timeline after Timeliner call:\n";
+    std::cout << "Timeline after Timeliner call:\n";
     PrintJson(Timeline);
-    std::cout << "main: Events after timeliner call:\n";
-    PrintJson(Events);
     WriteJson(OUTPUT_FILE, Timeline);
 
     return 0;
 }
-
-
 
 // Prints a Json object in a nice format
 void PrintJson(json JsonData){
@@ -75,19 +69,24 @@ void WriteJson(std::string FileName,json JsonData){
 }
 
 
-// 
+
+// Finds the group of events with the same transaction ID, adds their information to Timeline
+// and removes them from Events; processes the entire Events Json by means of recursion.
+// The events are progressively removed from Events so this recursive startegy can work.
+// This also allows to decrease the size of Events as Timeline grows, and the total memory
+// used by this routine is kept constant (instead of growing to about twice the size of Events).
 void Timeliner(json &BuyData, json &Timeline){
     { // begin scope of variables; they will be "decomissioned" before the end of this recursion
         int BuyEventIdx = -1;       // will hold the index of the buy event in the transaction_id group
         int &BuyEventIdxRef = BuyEventIdx;
         int FinalEventIndex = 0;    // will hold the index of the last event in the transaction_id group
-        int InsertIndex = -1;       // will hold the index where insertion in the timeline should be made
         int ProductIndex = 0;       // will iterate through product events in the transaction_id group
         int &ProductIndexRef = ProductIndex;
+        int InsertIndex = -1;       // will hold the index where insertion in the timeline should be made
 
         FinalEventIndex = GroupByTransID(BuyData, OUT BuyEventIdx);
         InsertIndex = FindInsertIndex(Timeline,BuyData["events"][BuyEventIdx]["timestamp"].get<std::string>());
-        if(Timeline["timeline"].size()>0){
+        if( !Timeline["timeline"].empty() ){ // "if timeline is not empty"
             json nothing = nullptr;
             Timeline["timeline"].insert(Timeline["timeline"].begin()+InsertIndex,nothing); // insert a new entry in timeline
         }
@@ -97,7 +96,7 @@ void Timeliner(json &BuyData, json &Timeline){
             // remember the buy event was removed in the last step;
             MoveProductInfo(BuyData,r,Timeline,InsertIndex,ProductIndexRef);
         }
-    } // end of variables scope
+    } // end of variables scope (to avoid lots of variables piling due to recursion)
     
     // recursion: if BuyData is not empty yet, call Timeliner again
     if(BuyData["events"].size()>0){
@@ -158,12 +157,12 @@ int FindTransIDIndex(json &BuyData, int EventIdx){
     return r;
 }
 
-// Finds the index to insert information in the timeline; this way it is built to be
+// Finds the index to insert information in the timeline. This way, it is built to be
 // ordered by timestamp (most recent first)
 int FindInsertIndex(json &Timeline, std::string Timestamp){
     int i = 0;
     std::string str = "";
-    if(Timeline["timeline"].size() == 0){ return 0;}
+    if( Timeline["timeline"].empty() ){ return 0;}
     str = Timeline["timeline"][i]["timestamp"].get<std::string>();
     while ( strcmp(Timestamp.c_str(),str.c_str()) < 0  ){
         i++;
