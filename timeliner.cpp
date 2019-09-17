@@ -118,9 +118,10 @@ void Timeliner(json &BuyData, json &Timeline){
 
         // insert a new entry in timelne at index InsertIndex (emplace operation)
         std::cout << "Timeliner: Timeline[\"timeline\"].size()=" << Timeline["timeline"].size() << std::endl; // FIXME remove
-        //if(Timeline["timeline"].size>0){
-        //    Timeline["timeline"].emplace(InsertIndex,{});
-        //}
+        if(Timeline["timeline"].size()>0){
+            json nothing = nullptr;
+            Timeline["timeline"].insert(Timeline["timeline"].begin()+InsertIndex,nothing);
+        }
 
         // transfer items from BuyEvent to Timeline
         MoveBuyInfo(BuyData,BuyEventIdx,Timeline,InsertIndex);
