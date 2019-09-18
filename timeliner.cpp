@@ -5,11 +5,7 @@
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
-
-// TODO main: use terminal arguments for input and output
-#define INPUT_FILE "events.json"
-#define OUTPUT_FILE "timeline.json"
-#define OUT     // useful output reminder
+#define OUT     // useful output reminder tag
 
 json ReadJson(std::string);
 void WriteJson(std::string, json);
@@ -24,14 +20,26 @@ void MoveProductInfo(json &, int, json &, int, int &);
 
 
 // Entry point of the application
-int main(){
+int main(int argc, char* argv[]){    // command-line inputs
+    // argv should be [<name of the program itself>, <name of input file>, <name of output file>];
 
     json Events;
     json Timeline;
     json &EventsRef = Events;
     json &TimelineRef = Timeline;
 
-    try{ Events = ReadJson(INPUT_FILE); }
+    // check number of inputs
+    if(argc!=3){
+        std::cout << "Wrong number of input arguments. You should enter";
+        std::cout << " (1) the name of the input file and (2) the name of the output file.";
+        std::cout << " Input list:\n";
+        for(int i=1; i<argc; i++){ 
+            std::cout << "(" << i << ") = " << argv[i] << std::endl;
+        }
+        return 1;
+    }
+
+    try{ Events = ReadJson(argv[1]); }
     catch(const std::runtime_error& e){ 
         std::cerr << e.what() << '\n'; 
         return 1;
@@ -44,7 +52,7 @@ int main(){
     PrintJson(Timeline);
     
     std::cout << "Writing timeline to output file\n";
-    try{ WriteJson(OUTPUT_FILE, Timeline); }
+    try{ WriteJson(argv[2], Timeline); }
     catch(const std::runtime_error& e){ 
         std::cerr << e.what() << '\n'; 
         return 1;
@@ -73,7 +81,7 @@ json ReadJson(std::string FileName){
 // Writes a Json file from a a json variable
 void WriteJson(std::string FileName,json JsonData){
     std::ofstream TimelineFile;
-    TimelineFile.open(OUTPUT_FILE);
+    TimelineFile.open(FileName);
     // TODO check for existence, and warn if overwriting file
     if( TimelineFile.fail() ){ throw std::runtime_error("Error opening output file."); }
     TimelineFile << JsonData;
