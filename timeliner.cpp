@@ -1,8 +1,9 @@
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <stdexcept>
-#include "nlohmann/json.hpp"
+#include <iostream>             // to deal with terminal output
+#include <iomanip>              // use setw to print json files nicely on the terminal
+#include <fstream>              // to deal with external files
+#include <stdexcept>            // to deal with exceptions
+#include <sys/stat.h>           // use stat to check for existence of output file, and warn user
+#include "nlohmann/json.hpp"    // to enable use of json variables
 
 using json = nlohmann::json;
 #define OUT     // useful output reminder tag
@@ -81,8 +82,11 @@ json ReadJson(std::string FileName){
 // Writes a Json file from a a json variable
 void WriteJson(std::string FileName,json JsonData){
     std::ofstream TimelineFile;
+    struct stat buf;
+
     TimelineFile.open(FileName);
-    // TODO check for existence, and warn if overwriting file
+    // FIXME confirm overwriting with the user
+    if( stat(FileName.c_str(), &buf) != -1 ){ std::cout << "Warning: output file already exists. Overwriting.\n"; }
     if( TimelineFile.fail() ){ throw std::runtime_error("Error opening output file."); }
     TimelineFile << JsonData;
     TimelineFile.close();
