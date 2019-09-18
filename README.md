@@ -1,6 +1,6 @@
 # Data manipulator
 
-This program was made for a selecrtion process in a company. The task was to organize the information contained in a .json file.
+I made this program for a selection process in a company. The task was to organize the information contained in a .json file.
 The original file had details on buy events and products, and we had to group the transactions into a timeline, ordered by
 date, with a specific formatting.
 
@@ -10,6 +10,8 @@ date, with a specific formatting.
 
 Simply compile the source code (timeliner.cpp) with your favorite C++ compiler. The program uses the Json library by Niels Lohmann,
 so don't forget to place the folder 'nlohmann' in the same directory as main.cpp.
+
+I also included the executable file that I compiled under Ubuntu 18.04 64-bit, called `timeliner`.
 
 ### Run from terminal
 
