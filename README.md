@@ -1,7 +1,7 @@
 # Data manipulator
 
-I made this program for a selection process in a company. The task was to organize the information contained in a .json file.
-The original file had details on buy events and products, and we had to group the transactions into a timeline, ordered by
+This program organizes the information contained in a .json file.
+The original file had details on buy events and products, and the program groups the transactions into a timeline, ordered by
 date, with a specific formatting.
 
 ## How to use
